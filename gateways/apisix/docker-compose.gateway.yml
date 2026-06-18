@@ -1,0 +1,35 @@
+services:
+  gateway:
+    image: apache/apisix:3.12.0-debian
+    container_name: gateway-poc-apisix
+    ports:
+      - "${GATEWAY_PORT:-9080}:9080"
+    volumes:
+      - ./gateway/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+      - ./gateway/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
+    depends_on:
+      - app-mock-llm
+
+  gateway-envoy:
+    image: envoyproxy/envoy:v1.38.0
+    container_name: gateway-poc-envoy
+    ports:
+      - "${ENVOY_GATEWAY_PORT:-9081}:9080"
+    volumes:
+      - ./gateways/envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
+    command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--log-level", "info"]
+    depends_on:
+      - app-mock-llm
+
+  gateway-litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: gateway-poc-litellm
+    environment:
+      LITELLM_MASTER_KEY: sk-test-api-key
+    ports:
+      - "${LITELLM_GATEWAY_PORT:-4000}:4000"
+    volumes:
+      - ./gateways/litellm/config.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--port", "4000", "--host", "0.0.0.0"]
+    depends_on:
+      - app-mock-llm

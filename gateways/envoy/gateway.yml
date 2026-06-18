@@ -1,0 +1,11 @@
+id: envoy
+name: Envoy
+listenPort: 9080
+serviceName: gateway-envoy
+publicChatCompletionsPath: /ai/v1/chat/completions
+upstreamChatCompletionsUrl: http://app-mock-llm:8082/v1/chat/completions
+auth:
+  header: X-API-KEY
+  demoKey: test-api-key
+rateLimit:
+  limitedDemoRoute: 1 request per Envoy Lua worker lifetime

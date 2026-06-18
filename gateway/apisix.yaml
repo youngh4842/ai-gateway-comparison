@@ -1,0 +1,45 @@
+routes:
+  - id: ai-chat-completions
+    uri: /ai/v1/chat/completions
+    methods:
+      - POST
+    plugins:
+      key-auth:
+        header: X-API-KEY
+        hide_credentials: true
+      limit-count:
+        count: 100
+        time_window: 60
+        rejected_code: 429
+      proxy-rewrite:
+        uri: /v1/chat/completions
+    upstream:
+      type: roundrobin
+      nodes:
+        "app-mock-llm:8082": 1
+  - id: ai-chat-completions-limited-demo
+    uri: /ai/v1/chat/completions-limited
+    methods:
+      - POST
+    plugins:
+      key-auth:
+        header: X-API-KEY
+        hide_credentials: true
+      limit-count:
+        count: 1
+        time_window: 60
+        rejected_code: 429
+      proxy-rewrite:
+        uri: /v1/chat/completions
+    upstream:
+      type: roundrobin
+      nodes:
+        "app-mock-llm:8082": 1
+
+consumers:
+  - username: cs_service
+    plugins:
+      key-auth:
+        key: test-api-key
+
+#END

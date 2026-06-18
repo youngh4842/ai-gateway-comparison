@@ -1,0 +1,12 @@
+id: apisix
+name: Apache APISIX
+listenPort: 9080
+serviceName: gateway
+publicChatCompletionsPath: /ai/v1/chat/completions
+upstreamChatCompletionsUrl: http://app-mock-llm:8082/v1/chat/completions
+auth:
+  header: X-API-KEY
+  demoKey: test-api-key
+rateLimit:
+  normalRoute: 100 requests / 60 seconds
+  limitedDemoRoute: 1 request / 60 seconds

@@ -1,0 +1,29 @@
+services:
+  app-cs-service:
+    build:
+      context: .
+      dockerfile: app-cs-service/Dockerfile
+    container_name: gateway-poc-app-cs-service
+    ports:
+      - "${CS_SERVICE_PORT:-8081}:8081"
+    environment:
+      AI_GATEWAY_URL: http://gateway:9080/ai/v1/chat/completions
+      AI_GATEWAY_API_KEY: test-api-key
+      AI_GATEWAY_SYSTEM_CODE: CS
+      AI_GATEWAY_TASK_TYPE: COUNSEL_SUMMARY
+      AI_GATEWAY_MODEL: internal-counsel-mock-llm
+    depends_on:
+      gateway:
+        condition: service_started
+      gateway-envoy:
+        condition: service_started
+      gateway-litellm:
+        condition: service_started
+
+  app-mock-llm:
+    build:
+      context: .
+      dockerfile: app-mock-llm/Dockerfile
+    container_name: gateway-poc-app-mock-llm
+    ports:
+      - "${MOCK_LLM_PORT:-8082}:8082"

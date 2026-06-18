@@ -1,0 +1,78 @@
+static_resources:
+  listeners:
+    - name: listener_0
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 9080
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: ingress_http
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: local_service
+                      domains:
+                        - "*"
+                      routes:
+                        - match:
+                            prefix: /ai/v1/chat/completions-limited
+                          route:
+                            cluster: mock_llm
+                            prefix_rewrite: /v1/chat/completions
+                        - match:
+                            prefix: /ai/v1/chat/completions
+                          route:
+                            cluster: mock_llm
+                            prefix_rewrite: /v1/chat/completions
+                http_filters:
+                  - name: envoy.filters.http.lua
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                      inline_code: |
+                        local limited_count = 0
+
+                        function envoy_on_request(request_handle)
+                          local headers = request_handle:headers()
+                          local api_key = headers:get("x-api-key")
+                          local path = headers:get(":path") or ""
+
+                          if api_key ~= "test-api-key" then
+                            request_handle:respond(
+                              {[":status"] = "401", ["content-type"] = "application/json"},
+                              "{\"message\":\"Invalid API key\"}"
+                            )
+                            return
+                          end
+
+                          if string.find(path, "/ai/v1/chat/completions-limited", 1, true) == 1 then
+                            limited_count = limited_count + 1
+                            if limited_count > 1 then
+                              request_handle:respond(
+                                {[":status"] = "429", ["content-type"] = "application/json"},
+                                "{\"message\":\"Rate limit exceeded\"}"
+                              )
+                              return
+                            end
+                          end
+                        end
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+  clusters:
+    - name: mock_llm
+      connect_timeout: 3s
+      type: logical_dns
+      lb_policy: round_robin
+      load_assignment:
+        cluster_name: mock_llm
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: app-mock-llm
+                      port_value: 8082

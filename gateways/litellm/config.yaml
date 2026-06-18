@@ -1,0 +1,12 @@
+model_list:
+  - model_name: internal-counsel-mock-llm
+    litellm_params:
+      model: openai/internal-counsel-mock-llm
+      api_base: http://app-mock-llm:8082/v1
+      api_key: test-api-key
+
+litellm_settings:
+  drop_params: true
+
+general_settings:
+  master_key: sk-test-api-key
